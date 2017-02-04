@@ -1,4 +1,5 @@
 #include <Btn.h>
+#include <Metro.h>
 
 /* RD-55 MIDI sync
 
@@ -22,10 +23,9 @@ Written by T.Watase
 #define SW_OMNI  9  //  tact sw for midi ch setting
 
 // LEDs
-const int led_clock = 4; // LOW active
-const int led_note  = 5; // LOW active
+const int led_omni = 4;  // midi omni on, LOW active 
+const int led_midi = 5; // midi/clock indicator, LOW active
 const int led_run  = 6; // LOW active
-const int led_omni = 7;  // midi omni on, LOW active 
 
 // midi status byte
 const byte midi_start = 0xfa;
@@ -79,13 +79,13 @@ void StartFirstClockPulse();
 void EndClockPulse();
 
 Btn btnOmni;
+Metro tmLed = Metro(20);  // midi/clock indicator
 
 // the setup routine runs once when you press reset:
 void setup() {
   // initialize the digital pin as an output.
   Serial.begin(31250);
-  pinMode(led_clock, OUTPUT);
-  pinMode(led_note, OUTPUT);
+  pinMode(led_midi, OUTPUT);
   pinMode(led_run, OUTPUT);
   pinMode(led_omni, OUTPUT);
   pinMode(CLOCK, INPUT);
@@ -103,8 +103,7 @@ void setup() {
   digitalWrite(IO_HH, LOW);
   digitalWrite(IO_AC, LOW);
 
-  digitalWrite(led_clock, HIGH);
-  digitalWrite(led_note, HIGH);
+  digitalWrite(led_midi, HIGH);
   digitalWrite(led_run, HIGH);
   digitalWrite(led_omni, HIGH);
   tm = millis();
@@ -185,18 +184,21 @@ TIMER_PROC:
     digitalWrite(IO_AC, LOW);
     pinMode(IO_AC, INPUT);
   }
-  if ((tm_led_nt + 10) < millis()){
-    digitalWrite(led_note, HIGH);
-  }
+
 
   // read sw
   int res = btnOmni.readNCheck();
   if (res == BTN_ISCHANGE) {
     if (btnOmni.isDown()) {
       isMidiOmni = !isMidiOmni;
-     digitalWrite(led_omni, !isMidiOmni);
+      digitalWrite(led_omni, !isMidiOmni);
     }
   }  
+
+  // midi/clock led off
+  if (tmLed.check() == 1) {
+    digitalWrite(led_midi, HIGH);
+  }
 }
 
 void Sync() {
@@ -217,7 +219,8 @@ void StartClockPulse() {
   digitalWrite(CLOCK, LOW);
   tm = millis();
   if ((cntQN++ & 0x03) == 0) {
-    digitalWrite(led_clock, LOW);
+    digitalWrite(led_midi, LOW);
+    tmLed.reset();
   }
 }
 
@@ -234,7 +237,6 @@ void StartFirstClockPulse()
 void EndClockPulse() {
   // end clock pulse
   digitalWrite(CLOCK, HIGH);
-  digitalWrite(led_clock, HIGH);
 }
 
 void handleStart(void)
@@ -297,6 +299,6 @@ void handleNoteOn(byte key, byte vel)
 
     pinMode(pin, OUTPUT);
     digitalWrite(pin, HIGH);
-    digitalWrite(led_note, LOW);
-    
+    digitalWrite(led_midi, LOW);
+    tmLed.reset();
 }
