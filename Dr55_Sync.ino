@@ -36,13 +36,6 @@ const byte midi_status = 0x80;
 const byte midi_ch = 10;  // rhythm channel
 
 // gate time (duration)
-const int durHHClose = 5;
-const int durHHPedal = 35;
-const int durHHOpen = 150;
-const int durBD = 20;
-const int durSD = 20;
-const int durRS = 20;
-const int durAC = 20;
 
 #define isStatus(data) (data >= 0x80)  // check status byte
 
@@ -51,14 +44,6 @@ int isRun = 0;
 int reqRun = 0;  //  request to run
 int tpqn = TPQN24;
 int durHH = 10;
-unsigned long tm = 0;
-unsigned long tm_bd = 0;
-unsigned long tm_rs = 0;
-unsigned long tm_sd = 0;
-unsigned long tm_hh = 0;
-unsigned long tm_ac = 0;
-unsigned long tm_led_nt = 0;  // for led of note
-unsigned long tm_led_cl = 0;  // for led of clock
 
 byte data;
 int fData;
@@ -78,8 +63,28 @@ void StartClockPulse();
 void StartFirstClockPulse();
 void EndClockPulse();
 
+// inputs
 Btn btnOmni;
-Metro tmLed = Metro(20);  // midi/clock indicator
+
+// timers
+
+#define DUR_BD 20
+#define DUR_SD 20
+#define DUR_RS 20
+#define DUR_AC 30
+#define DUR_HH_CLOSE 5
+#define DUR_HH_PEDAL 35
+#define DUR_HH_OPEN 150
+#define WIDTH_CLOCK 20
+#define WIDTH_LED 20
+
+Metro tmLed = Metro(WIDTH_LED);    // midi/clock indicator
+Metro tmClock = Metro(WIDTH_CLOCK);  // clock pulse width
+Metro tmBD = Metro(DUR_BD);           // duration BD
+Metro tmSD = Metro(DUR_SD);           // duration SD
+Metro tmRS = Metro(DUR_RS);           // duration RS
+Metro tmAC = Metro(DUR_AC);           // duration AC
+Metro tmHH = Metro(DUR_HH_CLOSE);     // duration HH
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -106,9 +111,6 @@ void setup() {
   digitalWrite(led_midi, HIGH);
   digitalWrite(led_run, HIGH);
   digitalWrite(led_omni, HIGH);
-  tm = millis();
-  tm_bd = tm_sd = tm_rs = tm_hh = tm_ac = 0;
-  tm_led_nt = tm_led_cl = 0;
 
   fData = flag_st;  // status
   key = vel = 0;
@@ -159,28 +161,28 @@ void loop() {
   }
 
 TIMER_PROC:
-  if (isRun) {
-    if ((tm + 20) < millis()) {
+//  if (isRun) {
+    if (tmClock.check() == 1) {
       EndClockPulse();
     }
-  }
-  if ((tm_bd + durBD) < millis()) {
+//  }
+  if (tmBD.check() == 1) {
     digitalWrite(IO_BD, LOW);
     pinMode(IO_BD, INPUT);
   }
-  if ((tm_rs + durRS) < millis()) {
+  if (tmRS.check() == 1) {
     digitalWrite(IO_RS, LOW);
     pinMode(IO_RS, INPUT);
   }
-  if ((tm_sd + durSD) < millis()) {
+  if (tmSD.check() == 1) {
     digitalWrite(IO_SD, LOW);
     pinMode(IO_SD, INPUT);
   }
-  if ((tm_hh + durHH) < millis()) {
+  if (tmHH.check() == 1) {
     digitalWrite(IO_HH, LOW);
     pinMode(IO_HH, INPUT);
   }
-  if ((tm_ac + durAC) < millis()) {
+  if (tmAC.check() == 1) {
     digitalWrite(IO_AC, LOW);
     pinMode(IO_AC, INPUT);
   }
@@ -217,9 +219,10 @@ void Sync() {
 void StartClockPulse() {
   // start clock pulse (negative)
   digitalWrite(CLOCK, LOW);
-  tm = millis();
+  tmClock.reset();
   if ((cntQN++ & 0x03) == 0) {
     digitalWrite(led_midi, LOW);
+    tmLed.interval(WIDTH_LED);
     tmLed.reset();
   }
 }
@@ -258,34 +261,41 @@ void handleStop(void)
 void handleNoteOn(byte key, byte vel)
 {
     int pin = 0;
+    int dur = 0;
     switch (key) {
         case 48: // BD
         pin = IO_BD;
-        tm_bd = tm_led_nt = millis();
+        dur = DUR_BD;
+        tmBD.reset();
         break;
         case 51: // RS
         pin = IO_RS;
-        tm_rs = tm_led_nt = millis();
+        dur = DUR_RS;
+        tmRS.reset();
         break;
         case 50: // SD1
         case 52: // SD2
         pin = IO_SD;
-        tm_sd = tm_led_nt = millis();
+        dur = DUR_SD;
+        tmSD.reset();
         break;
         case 54: // C.HH
         pin = IO_HH;
-        durHH = durHHClose;
-        tm_hh = tm_led_nt = millis();
+        dur = DUR_HH_CLOSE;
+        tmHH.interval(dur);
+        tmHH.reset();
         break;
         case 56: // P.HH
         pin = IO_HH;
-        durHH = durHHPedal;
-        tm_hh = tm_led_nt = millis();
+        dur = DUR_HH_PEDAL;
+        tmHH.interval(dur);
+        tmHH.reset();
         break;
         case 58: // O.HH
         pin = IO_HH;
-        durHH = durHHOpen;
-        tm_hh = tm_led_nt = millis();
+        dur = DUR_HH_OPEN;
+        tmHH.interval(dur);
+        tmHH.reset();
         break;
         default:
         return;
@@ -294,11 +304,14 @@ void handleNoteOn(byte key, byte vel)
     if (vel > 90) { 
       pinMode(IO_AC, OUTPUT);
       digitalWrite(IO_AC, HIGH);
-      tm_ac = tm_led_nt;
+      tmAC.reset();
     }
 
     pinMode(pin, OUTPUT);
     digitalWrite(pin, HIGH);
     digitalWrite(led_midi, LOW);
-    tmLed.reset();
+    if (dur > 0) {
+      tmLed.interval(dur);
+      tmLed.reset();
+    }
 }
