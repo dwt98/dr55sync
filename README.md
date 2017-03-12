@@ -7,19 +7,19 @@ This project includes schematics and sketch for Arduino.
 +++ Features
 
 + MIDI clock slave sync
-DR-55 sync to the MIDI clock from external rhythm machine or sequencer.
+- DR-55 sync to the MIDI clock from external rhythm machine or sequencer.
 
 + Manual play by MIDI
-You can play DR-55 manualy from external keyboard or sequencer by MIDI note message. Hi-hat supports variation of open/close/pedal.
+- You can play DR-55 manualy from external keyboard or sequencer by MIDI note message. Hi-hat supports variation of open/close/pedal.
 
 + Accent control by velocity
-When the velocity value is larger than threshold, accent signal turn on.  Threshold value is defined in source code.
+- When the velocity value is larger than threshold, accent signal turn on.  Threshold value is defined in source code.
 
 + Omni Mode Switch
-Rx MIDI channel is 10 in default. But when the switch turn on, every midi channel is recognized. If you specified rx midi ch, it is available in the code.
+- Rx MIDI channel is 10 in default. But when the switch turn on, every midi channel is recognized. If you specified rx midi ch, it is available in the code.
 
 +++ MIDI Implementation
-
+<pre>
 Receive Messages
 
 Note Message     9x nn vv    (Hex)
@@ -42,7 +42,7 @@ System Ream-time Message
   F8 … midi clock
   FA … Start
   FC … Stop
-
+</pre>
 +++ Hardware
 
 + Using Arduino Pro Mini compatible board (5V 16MHz)
