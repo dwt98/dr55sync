@@ -1,10 +1,14 @@
-/* RD-55 MIDI sync version 2
+/* 
+  RD-55 MIDI sync version 2
 
-Written by T.Watase
-10 March 2017
+created 10 March 2017
+by Takao Watase
+
+This is free software released into the public domain.
 
 */
 
+// constants
 #define TPQN24  6     // number of F8 clock when TPQN=24
 #define TPQN48  12    // number of F8 clock when TPQN=48
 #define LED_ON HIGH
@@ -48,7 +52,7 @@ Written by T.Watase
 #define isStatus(data) (data >= 0x80)   // check status byte
 #define getMidiCh(ch) (ch - 1)          // midi channel start from 1, but actual value start from 0.
 
-//variables
+// variables
 int cntClock = 0;     // count F8
 int cntClkLed = 0;    // count clock led
 
@@ -65,15 +69,6 @@ const int flag_d2 = 2;    // waiting 3rd byte as data 2
 byte key;             // note number
 byte vel;             // velocity
 
-// decralations
-void handleStart();                     // event handler for midi start (FA)
-void handleStop();                      // event handler for midi stop (FC)
-void handleNoteOn(byte key, byte vel);  // event handler for midi note messages
-void Sync();                            // process F8 clock
-void StartClockPulse();                 // process to start clock pulse
-void StartFirstClockPulse();            // process the first clock pulse
-void EndClockPulse();                   // process to end clock pulse
-
 // timers
 // use Metro library
 #include <Metro.h>
@@ -85,6 +80,17 @@ Metro tmSD = Metro(DUR_SD);           // duration SD
 Metro tmRS = Metro(DUR_RS);           // duration RS
 Metro tmAC = Metro(DUR_AC);           // duration AC
 Metro tmHH = Metro(DUR_HH_CLOSE);     // duration HH
+
+// decralation of subroutines
+void handleStart();                     // event handler for midi start (FA)
+void handleStop();                      // event handler for midi stop (FC)
+void handleNoteOn(byte key, byte vel);  // event handler for midi note messages
+void Sync();                            // process F8 clock
+void StartClockPulse();                 // process to start clock pulse
+void StartFirstClockPulse();            // process the first clock pulse
+void EndClockPulse();                   // process to end clock pulse
+
+// programs
 
 /*
  * the setup routine runs once when you press reset: 
@@ -344,3 +350,6 @@ void handleNoteOn(byte key, byte vel)
     tmLed.interval(dur);              // start led off timer
     tmLed.reset();
 }
+
+// End of file
+
