@@ -1,98 +1,103 @@
-#include <Btn.h>
-#include <Metro.h>
-
-/* RD-55 MIDI sync
+/* RD-55 MIDI sync version 2
 
 Written by T.Watase
-1 Jan. 2017
+10 March 2017
 
 */
 
 #define TPQN24  6     // number of F8 clock when TPQN=24
 #define TPQN48  12    // number of F8 clock when TPQN=48
-#define LENPULSE 10   // length of gate pulse in msec
+#define LED_ON HIGH
+#define LED_OFF LOW
 
-// I/O
-#define IO_HH 10 // TC5501P  Base of Q12 茶
-#define IO_RS 11 // TC5501P  pin 12
-#define IO_SD 12 // TC5501P  pin 14
-#define IO_BD 13 // TC5501P  pin 16
-#define CLOCK 14 // TC4011UB pin 13
-#define ST 15    // TC4011UB pin 3 青
-#define IO_AC 16 // TC5501P  pin 10 緑
-#define SW_OMNI  9  //  tact sw for midi ch setting
+// Length of control pulse (msec)
+#define DUR_BD 20     // BD gate time
+#define DUR_SD 20     // SD gate time
+#define DUR_RS 20     // RS gate time
+#define DUR_AC 30     // gate time of Accent
+#define DUR_HH_CLOSE 5   // gate time for close HH
+#define DUR_HH_PEDAL 35  // gate time for pedal HH
+#define DUR_HH_OPEN 150  // gate time for open HH
+#define WIDTH_CLOCK 20   // gate time of tempo clock
+#define WIDTH_LED 20     // gate time for led
 
-// LEDs
-const int led_omni = 4;  // midi omni on, LOW active 
-const int led_midi = 5; // midi/clock indicator, LOW active
-const int led_run  = 6; // LOW active
+#define THRES_AC    90   // threshold velocity for accent
 
-// midi status byte
-const byte midi_start = 0xfa;
-const byte midi_stop = 0xfc;
-const byte midi_clock = 0xf8;
-const byte midi_note = 0x90;
-const byte midi_status = 0x80;
-const byte midi_ch = 10;  // rhythm channel
+// I/O pins            pin# of Connector  -   DR-55 components
+#define IO_HH 10    // 2                      Q12 base
+#define IO_RS 11    // 3                      TC5501P  pin 12
+#define IO_SD 12    // 4                      TC5501P  pin 14
+#define IO_BD 13    // 5                      TC5501P  pin 16
+#define CLOCK 17    // 6                      TC4011UB pin 13
+#define ST 16       // 7                      TC4011UB pin 3
+#define IO_AC 15    // 8                      TC5501P  pin 10
+#define SW_OMNI  9  // Omni mode switch
 
-// gate time (duration)
+// pin# of LEDs
+#define LED_MIDI 4  // midi/clock indicator
+#define LED_RUN  5  // lit while running
 
-#define isStatus(data) (data >= 0x80)  // check status byte
+// midi status
+#define MIDI_START    0xfa
+#define MIDI_STOP     0xfc
+#define MIDI_CLOCK    0xf8
+#define MIDI_NOTE     0x90
+#define MIDI_STATUS   0x80
+#define MIDI_CH       10    // receive channel , 10 = rhythm ch.
 
-int cntClock = 0;
-int isRun = 0;
-int reqRun = 0;  //  request to run
-int tpqn = TPQN24;
-int durHH = 10;
+#define isStatus(data) (data >= 0x80)   // check status byte
+#define getMidiCh(ch) (ch - 1)          // midi channel start from 1, but actual value start from 0.
 
-byte data;
-int fData;
-const int flag_st = 0;
-const int flag_d1 = 1;
-const int flag_d2 = 2;
-bool isMidiOmni = false;
-byte key;
-byte vel;
-byte cntQN; // count for quater note to lit led.
+//variables
+int cntClock = 0;     // count F8
+int cntClkLed = 0;    // count clock led
 
-void handleStart();
-void handleStop();
-void handleNoteOn(byte key, byte vel);
-void Sync();
-void StartClockPulse();
-void StartFirstClockPulse();
-void EndClockPulse();
+bool isRun = false;   // true while running clock
+bool reqRun = false;  // request to run
+bool isMidiOmni = false;  // true while omni sw on
 
-// inputs
-Btn btnOmni;
+int tpqn = TPQN24;    // Ticks Per Quater Note means number of clock pulse for quarter note.
+
+int fData;            // waiting data type
+const int flag_st = 0;    // waiting 1st byte as status
+const int flag_d1 = 1;    // waiting 2nd byte as data 1
+const int flag_d2 = 2;    // waiting 3rd byte as data 2
+byte key;             // note number
+byte vel;             // velocity
+
+// decralations
+void handleStart();                     // event handler for midi start (FA)
+void handleStop();                      // event handler for midi stop (FC)
+void handleNoteOn(byte key, byte vel);  // event handler for midi note messages
+void Sync();                            // process F8 clock
+void StartClockPulse();                 // process to start clock pulse
+void StartFirstClockPulse();            // process the first clock pulse
+void EndClockPulse();                   // process to end clock pulse
 
 // timers
+// use Metro library
+#include <Metro.h>
 
-#define DUR_BD 20
-#define DUR_SD 20
-#define DUR_RS 20
-#define DUR_AC 30
-#define DUR_HH_CLOSE 5
-#define DUR_HH_PEDAL 35
-#define DUR_HH_OPEN 150
-#define WIDTH_CLOCK 20
-#define WIDTH_LED 20
-
-Metro tmLed = Metro(WIDTH_LED);    // midi/clock indicator
-Metro tmClock = Metro(WIDTH_CLOCK);  // clock pulse width
+Metro tmLed = Metro(WIDTH_LED);       // midi/clock led indicator
+Metro tmClock = Metro(WIDTH_CLOCK);   // clock pulse width
 Metro tmBD = Metro(DUR_BD);           // duration BD
 Metro tmSD = Metro(DUR_SD);           // duration SD
 Metro tmRS = Metro(DUR_RS);           // duration RS
 Metro tmAC = Metro(DUR_AC);           // duration AC
 Metro tmHH = Metro(DUR_HH_CLOSE);     // duration HH
 
-// the setup routine runs once when you press reset:
+/*
+ * the setup routine runs once when you press reset: 
+ */
 void setup() {
   // initialize the digital pin as an output.
-  Serial.begin(31250);
-  pinMode(led_midi, OUTPUT);
-  pinMode(led_run, OUTPUT);
-  pinMode(led_omni, OUTPUT);
+  Serial.begin(31250);                // rate for MIDI
+  pinMode(LED_MIDI, OUTPUT);
+  pinMode(LED_RUN, OUTPUT);
+  pinMode(SW_OMNI, INPUT_PULLUP);     // use internal pull-up
+  /*
+  following pins should be set "INPUT", set signal line open, while not running.
+  */
   pinMode(CLOCK, INPUT);
   pinMode(ST, INPUT);
   pinMode(IO_BD, INPUT);
@@ -100,75 +105,81 @@ void setup() {
   pinMode(IO_RS, INPUT);
   pinMode(IO_HH, INPUT);
   pinMode(IO_AC, INPUT);
-//  pinMode(SW_OMNI, INPUT_PULLUP);
-
+  
   digitalWrite(IO_BD, LOW);
   digitalWrite(IO_SD, LOW);
   digitalWrite(IO_RS, LOW);
   digitalWrite(IO_HH, LOW);
   digitalWrite(IO_AC, LOW);
+  digitalWrite(LED_MIDI, LED_OFF);
+  digitalWrite(LED_RUN, LED_OFF);
 
-  digitalWrite(led_midi, HIGH);
-  digitalWrite(led_run, HIGH);
-  digitalWrite(led_omni, HIGH);
-
-  fData = flag_st;  // status
+  fData = flag_st;  // waiting status
   key = vel = 0;
-  cntQN = 0;
-
-  btnOmni.init(SW_OMNI, BTN_POLAR_PUSH_LOW);
 }
 
-// the loop routine runs over and over again forever:
+/* 
+ * the loop routine runs over and over again forever: 
+ */
 void loop() {
+  // check serial rx data
   if (Serial.available() <= 0) goto TIMER_PROC;
 
+  // processing rx data
+  byte data;
   data = Serial.read();
 
-  if (isStatus(data)) {
-    if (data == midi_start) {
-      handleStart();
+  if (isStatus(data)) {         // check status byte
+    if (data == MIDI_START) {
+      handleStart();            // Start clock
     }
-    else if(data == midi_stop) {
-      handleStop();
+    else if(data == MIDI_STOP) {
+      handleStop();             // Stop clock
     }
-    else if(data == midi_clock) {
-      Sync();
+    else if(data == MIDI_CLOCK) {
+      Sync();                   // process F8 clock
     }
-    else if((data & 0xf0) == midi_note) {
-      if (isMidiOmni ||  (data & 0x0f == midi_ch - 1)) {
-        fData = flag_d1;      
+    else if((data & 0xf0) == MIDI_NOTE) {
+                                // process note status message
+      if (isMidiOmni ||  (data & 0x0f == getMidiCh(MIDI_CH))) {  // if not omni mode, check midi channel.
+        fData = flag_d1;        // if the channel is valid, next data is data 1
       } else {
-        fData = flag_st;  // waiting next status      
+        fData = flag_st;        // if the channel is invalid, ignore rx till coming status byte
       }
     }
     else if((data & 0xf0) != 0xf0) {
-      // other status other than realtime message
-      fData = flag_st;  // waiting status
+      // channel message other than note
+      fData = flag_st;  // waiting next status
     }
   }
   else {
-      // data byte
+      // process data byte
       if (fData == flag_d1) {
+          // data 1 is note number
           key = data;
-          fData = flag_d2;
+          fData = flag_d2;    // next data shold be data 2.
       }
       else if (fData == flag_d2) {
+          // data 2 is velocity
           vel = data;
-          fData = flag_d1;    // running status available
-          if (vel > 0) handleNoteOn(key, vel);
+          fData = flag_d1;    // waiting data 1 if running status was available
+          if (vel > 0) handleNoteOn(key, vel);  // process note on
       }
   }
 
+/*
+ * Timer process
+ */
 TIMER_PROC:
-//  if (isRun) {
-    if (tmClock.check() == 1) {
-      EndClockPulse();
-    }
-//  }
+  // Clock pulse end
+  if (tmClock.check() == 1) {
+    EndClockPulse();
+  }
+
+  // sound pulse end
   if (tmBD.check() == 1) {
-    digitalWrite(IO_BD, LOW);
-    pinMode(IO_BD, INPUT);
+    digitalWrite(IO_BD, LOW);   // set pulse low
+    pinMode(IO_BD, INPUT);      // set line open
   }
   if (tmRS.check() == 1) {
     digitalWrite(IO_RS, LOW);
@@ -187,131 +198,149 @@ TIMER_PROC:
     pinMode(IO_AC, INPUT);
   }
 
-
-  // read sw
-  int res = btnOmni.readNCheck();
-  if (res == BTN_ISCHANGE) {
-    if (btnOmni.isDown()) {
-      isMidiOmni = !isMidiOmni;
-      digitalWrite(led_omni, !isMidiOmni);
-    }
-  }  
+  // read omni mode sw
+  isMidiOmni = digitalRead(SW_OMNI);
 
   // midi/clock led off
   if (tmLed.check() == 1) {
-    digitalWrite(led_midi, HIGH);
+    digitalWrite(LED_MIDI, LED_OFF);
   }
 }
 
+/*
+ * Process F8 clock
+ */
 void Sync() {
-  if (reqRun) {
-    StartFirstClockPulse();
-    cntClock = 0;
+  if (reqRun) {                 // if the request flag was rised, 
+    StartFirstClockPulse();     //   process to start clock
+    cntClock = 0;               // reset clock count
     return;
   }
-  if (!isRun) return;
-  if (++cntClock == tpqn) {
-    StartClockPulse();
-    cntClock = 0;
+
+                                // generating tempo clock pulse
+  if (++cntClock == tpqn) {     // increment clock count and check it.
+    StartClockPulse();          // start clock pulse 
+    cntClock = 0;               // reset clock count
   }
 }
 
+/*
+ * Process to start clock pulse
+ */
 void StartClockPulse() {
-  // start clock pulse (negative)
+                                // start clock pulse (set low)
   digitalWrite(CLOCK, LOW);
   tmClock.reset();
-  if ((cntQN++ & 0x03) == 0) {
-    digitalWrite(led_midi, LOW);
-    tmLed.interval(WIDTH_LED);
+                                  // clock led on
+  if (isRun &&                    //    while running and
+      cntClkLed++ % 4 == 0) {     //    per 4 clocks.
+    digitalWrite(LED_MIDI, LED_ON);
+    tmLed.interval(WIDTH_LED);    // start led timer
     tmLed.reset();
   }
 }
 
+/*
+ * Process the first clock pulse 
+ */
 void StartFirstClockPulse()
 {
-  isRun = 1;
-  reqRun = 0;
-  pinMode(ST, OUTPUT);
-  digitalWrite(ST, HIGH);
-  pinMode(CLOCK, OUTPUT);
-  StartClockPulse();
+  isRun = true;               // set status running
+  reqRun = false;             // reset request flag
+  cntClkLed = 0;              // reset count clock led
+  pinMode(ST, OUTPUT);        // set pin as "OUTPUT" to control status line.
+  digitalWrite(ST, HIGH);     // set running.
+  pinMode(CLOCK, OUTPUT);     // set pin as "OUTPUT" to control clock line.
+  StartClockPulse();          // generate pulse on clock line.
 }
 
+/*
+ * process to stop clock pulse
+ */
 void EndClockPulse() {
-  // end clock pulse
+                                  // end clock pulse (set high)
   digitalWrite(CLOCK, HIGH);
 }
 
+/*
+ * midi handler routine - Start
+ */
 void handleStart(void)
 {
-  reqRun = 1;
-  cntQN = 0;
-  digitalWrite(led_run, LOW);
+  reqRun = true;                  // set request flag
+  digitalWrite(LED_RUN, LED_ON);  // led on
 }
 
+/*
+ * midi handler routine - Stop
+ */
 void handleStop(void)
 {
-  digitalWrite(ST, LOW);
-  isRun = 0;
-  pinMode(CLOCK, INPUT);
-  pinMode(ST, INPUT);
-  digitalWrite(led_run, HIGH);
+  digitalWrite(ST, LOW);                // Set status line low.
+  isRun = false;                        // set status stop
+  pinMode(CLOCK, INPUT);                // open clock line
+  pinMode(ST, INPUT);                   // open status line
+  digitalWrite(LED_RUN, LED_OFF);       // led off   
 }
 
+/*
+ * midi handler routine - note message
+ */
 void handleNoteOn(byte key, byte vel)
 {
-    int pin = 0;
-    int dur = 0;
+    int pin = 0;        // pin#
+    int dur = 0;        // duration (gate time)
     switch (key) {
-        case 48: // BD
-        pin = IO_BD;
-        dur = DUR_BD;
-        tmBD.reset();
-        break;
-        case 51: // RS
-        pin = IO_RS;
-        dur = DUR_RS;
-        tmRS.reset();
-        break;
-        case 50: // SD1
-        case 52: // SD2
-        pin = IO_SD;
-        dur = DUR_SD;
-        tmSD.reset();
-        break;
-        case 54: // C.HH
-        pin = IO_HH;
-        dur = DUR_HH_CLOSE;
-        tmHH.interval(dur);
-        tmHH.reset();
-        break;
-        case 56: // P.HH
-        pin = IO_HH;
-        dur = DUR_HH_PEDAL;
-        tmHH.interval(dur);
-        tmHH.reset();
-        break;
-        case 58: // O.HH
-        pin = IO_HH;
-        dur = DUR_HH_OPEN;
-        tmHH.interval(dur);
-        tmHH.reset();
-        break;
+        case 48:        // note# of BD
+          pin = IO_BD;
+          dur = DUR_BD;
+          tmBD.reset();
+          break;
+        case 51:        // note# of RS
+          pin = IO_RS;
+          dur = DUR_RS;
+          tmRS.reset();
+          break;
+        case 50:        // note# of SD1
+        case 52:        // note# of SD2
+          pin = IO_SD;
+          dur = DUR_SD;
+          tmSD.reset();
+          break;
+        case 54:        // note# of Close HH
+          pin = IO_HH;
+          dur = DUR_HH_CLOSE;
+          tmHH.interval(dur);
+          tmHH.reset();
+          break;
+        case 56:        // note# of Pedal HH
+          pin = IO_HH;
+          dur = DUR_HH_PEDAL;
+          tmHH.interval(dur);
+          tmHH.reset();
+          break;
+        case 58:        // note# of Open HH
+          pin = IO_HH;
+          dur = DUR_HH_OPEN;
+          tmHH.interval(dur);
+          tmHH.reset();
+          break;
         default:
-        return;
+          return;
     }
 
-    if (vel > 90) { 
-      pinMode(IO_AC, OUTPUT);
-      digitalWrite(IO_AC, HIGH);
-      tmAC.reset();
+    // start accent pulse
+    //   process before start note pulse
+    if (vel > THRES_AC) {
+      pinMode(IO_AC, OUTPUT);         // set accent line ready
+      digitalWrite(IO_AC, HIGH);      // start pulse
+      tmAC.reset();                   // start timer
     }
 
-    pinMode(pin, OUTPUT);
-    digitalWrite(pin, HIGH);
-    digitalWrite(led_midi, LOW);
-    if (dur > 0) {
-      tmLed.interval(dur);
-      tmLed.reset();
-    }
+    // start note pulse
+    pinMode(pin, OUTPUT);             // set note line ready
+    digitalWrite(pin, HIGH);          // start pulse
+    digitalWrite(LED_MIDI, LED_ON);   // set led on
+    tmLed.interval(dur);              // start led off timer
+    tmLed.reset();
 }
