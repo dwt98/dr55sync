@@ -2,6 +2,7 @@
   RD-55 MIDI sync version 2
 
 created 10 March 2017
+updated 12 April 2017
 by Takao Watase
 
 This is free software released into the public domain.
@@ -28,7 +29,7 @@ This is free software released into the public domain.
 #define THRES_AC    90   // threshold velocity for accent
 
 // I/O pins            pin# of Connector  -   DR-55 components
-#define IO_HH 10    // 2                      Q12 base
+#define IO_HH 10    // 2                      S4 Common
 #define IO_RS 11    // 3                      TC5501P  pin 12
 #define IO_SD 12    // 4                      TC5501P  pin 14
 #define IO_BD 13    // 5                      TC5501P  pin 16
@@ -147,7 +148,8 @@ void loop() {
     }
     else if((data & 0xf0) == MIDI_NOTE) {
                                 // process note status message
-      if (isMidiOmni ||  (data & 0x0f == getMidiCh(MIDI_CH))) {  // if not omni mode, check midi channel.
+      if (isMidiOmni ||  ((data & 0x0f) == getMidiCh(MIDI_CH))) {  // if not omni mode, check midi channel.
+//      if ((data & 0x0f) == MIDI_CH) {  // if not omni mode, check midi channel.
         fData = flag_d1;        // if the channel is valid, next data is data 1
       } else {
         fData = flag_st;        // if the channel is invalid, ignore rx till coming status byte
