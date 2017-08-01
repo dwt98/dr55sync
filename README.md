@@ -4,7 +4,7 @@ This project is creating DR-55 MIDI sync board.
 BOSS DR-55, Dr. Rhythm, is a programable rhythm machine manuafactured by Roland in 1979. This projects brings MIDI conenectibity to DR-55.
 This project includes schematics and sketch for Arduino.
 
-Watch demo movie at YouTube https://www.youtube.com/watch?v=whlHrn3-OU4
+Watch demo movie at [YouTube](https://www.youtube.com/watch?v=whlHrn3-OU4)
 
 ## Features
 
@@ -56,7 +56,7 @@ Stop              FC  (Hex)
 
 * Power is provided from DR-55.
 
-* The board is connected to DR-55 with 10 core flat cable. Board side of the cable is connector. DR-55 side of cable should be soldered to the DR-55 main board directory. No additional parts or special modification is required in DR-55 side.
+* The board is connected to DR-55 with 10 core flat cable. Board side of the cable is connector. DR-55 side of cable should be soldered to the DR-55 main board directory. No additional parts or special modification is required in DR-55 side. Please refer *Connection Guide* in the repository for detail.
 
 * Switch 1 of the DIP SW is a program switch of Arduino. Switch 2 - 4 can be used any setting.
 
@@ -64,11 +64,11 @@ Stop              FC  (Hex)
 
 ### Library
 
-Metro library is used.
+The sketch uses Metro library as timers.
 
 ### PCB Version
 
-Configuration of PCB version is place at the top of the sketch. Define the version you use and comment out other versions.
+Configuration of PCB version is place at the top of the sketch. It assign the io pins. If you use PCB provided from my project, define the appropriate version. 
 
 
 // End of file
