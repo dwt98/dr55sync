@@ -123,6 +123,15 @@ void setup() {
 
   fData = flag_st;  // waiting status
   key = vel = 0;
+
+  // sign for start up
+
+  for ( int i = 0; i < 4; i++ ) {
+    digitalWrite(LED_RUN, LED_ON);
+    delay(250); 
+    digitalWrite(LED_RUN, LED_OFF);
+    delay(250); 
+  }  
 }
 
 /* 
@@ -207,7 +216,7 @@ TIMER_PROC:
   }
 
   // read omni mode sw
-  isMidiOmni = digitalRead(SW_OMNI);
+  isMidiOmni = (digitalRead(SW_OMNI) == HIGH) ? false : true;
 
   // midi/clock led off
   if (tmLed.check() == 1) {
