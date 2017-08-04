@@ -1,13 +1,19 @@
 /* 
-  RD-55 MIDI sync version 2
+  RD-55 MIDI sync version 2.1
 
 created 10 March 2017
 updated 12 April 2017
+updated 29 July  2017
 by Takao Watase
 
 This is free software released into the public domain.
 
 */
+
+// select circuit board version
+
+//#define PCB_VERSION_1_0    // version 1.0
+#define PCB_VERSION_2_1    // version 2.1
 
 // constants
 #define TPQN24  6     // number of F8 clock when TPQN=24
@@ -24,10 +30,27 @@ This is free software released into the public domain.
 #define DUR_HH_PEDAL 35  // gate time for pedal HH
 #define DUR_HH_OPEN 150  // gate time for open HH
 #define WIDTH_CLOCK 20   // gate time of tempo clock
-#define WIDTH_LED 20     // gate time for led
+#define WIDTH_LED 50     // gate time for led
 
 #define THRES_AC    90   // threshold velocity for accent
 
+#ifdef PCB_VERSION_2_1   // PCB Version 2.1
+// I/O pins            pin# of Connector  -   DR-55 components
+#define IO_HH 10    // 2                      S4 Common
+#define IO_RS 11    // 3                      TC5501P  pin 12
+#define IO_SD 12    // 4                      TC5501P  pin 14
+#define IO_BD 13    // 5                      TC5501P  pin 16
+#define CLOCK 14    // 6                      TC4011UB pin 13
+#define ST 15       // 7                      TC4011UB pin 3
+#define IO_AC 16    // 8                      TC5501P  pin 10
+#define SW_OMNI  9  // Omni mode switch
+
+// pin# of LEDs
+#define LED_MIDI 4  // midi/clock indicator
+#define LED_RUN  5  // light while running clock
+#endif 
+
+#ifdef PCB_VERSION_1_0   // PCB Version 1.0
 // I/O pins            pin# of Connector  -   DR-55 components
 #define IO_HH 10    // 2                      S4 Common
 #define IO_RS 11    // 3                      TC5501P  pin 12
@@ -41,6 +64,7 @@ This is free software released into the public domain.
 // pin# of LEDs
 #define LED_MIDI 4  // midi/clock indicator
 #define LED_RUN  5  // lit while running
+#endif 
 
 // midi status
 #define MIDI_START    0xfa
