@@ -35,15 +35,15 @@ This is free software released into the public domain.
 #define THRES_AC    90   // threshold velocity for accent
 
 #ifdef PCB_VERSION_2_1   // PCB Version 2.1
-// I/O pins            pin# of Connector  -   DR-55 components
-#define IO_HH 10    // 2                      S4 Common
-#define IO_RS 11    // 3                      TC5501P  pin 12
-#define IO_SD 12    // 4                      TC5501P  pin 14
-#define IO_BD 13    // 5                      TC5501P  pin 16
-#define CLOCK 14    // 6                      TC4011UB pin 13
-#define ST 15       // 7                      TC4011UB pin 3
-#define IO_AC 16    // 8                      TC5501P  pin 10
-#define SW_OMNI  9  // Omni mode switch
+// I/O pins            I/0   pin# of Connector  -   DR-55 components
+#define IO_HH 10    // D10   2                      S4 Common
+#define IO_RS 11    // D11   3                      TC5501P  pin 12
+#define IO_SD 12    // D12   4                      TC5501P  pin 14
+#define IO_BD 13    // D13   5                      TC5501P  pin 16
+#define CLOCK 14    // A0    6                      TC4011UB pin 13
+#define ST 15       // A1    7                      TC4011UB pin 3
+#define IO_AC 16    // A2    8                      TC5501P  pin 10
+#define SW_OMNI  9  // D9    Omni mode switch
 
 // pin# of LEDs
 #define LED_MIDI 4  // midi/clock indicator
@@ -51,15 +51,15 @@ This is free software released into the public domain.
 #endif 
 
 #ifdef PCB_VERSION_1_0   // PCB Version 1.0
-// I/O pins            pin# of Connector  -   DR-55 components
-#define IO_HH 10    // 2                      S4 Common
-#define IO_RS 11    // 3                      TC5501P  pin 12
-#define IO_SD 12    // 4                      TC5501P  pin 14
-#define IO_BD 13    // 5                      TC5501P  pin 16
-#define CLOCK 17    // 6                      TC4011UB pin 13
-#define ST 16       // 7                      TC4011UB pin 3
-#define IO_AC 15    // 8                      TC5501P  pin 10
-#define SW_OMNI  9  // Omni mode switch
+// I/O pins            I/O   pin# of Connector  -   DR-55 components
+#define IO_HH 10    // D10   2                      S4 Common
+#define IO_RS 11    // D11   3                      TC5501P  pin 12
+#define IO_SD 12    // D12   4                      TC5501P  pin 14
+#define IO_BD 13    // D13   5                      TC5501P  pin 16
+#define CLOCK 17    // A3    6                      TC4011UB pin 13
+#define ST 16       // A2    7                      TC4011UB pin 3
+#define IO_AC 15    // A1    8                      TC5501P  pin 10
+#define SW_OMNI  9  // D9    Omni mode switch
 
 // pin# of LEDs
 #define LED_MIDI 4  // midi/clock indicator
