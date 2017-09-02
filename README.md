@@ -70,5 +70,9 @@ The sketch uses Metro library as timers.
 
 Configuration of PCB version is place at the top of the sketch. It assign the io pins. If you use PCB provided from my project, define the appropriate version. 
 
+## Soldering point on DR-55
+
+Please refer this [document.](https://github.com/dwt98/dr55sync/raw/master/DR55_soldering_points.pdf)
+
 
 // End of file
