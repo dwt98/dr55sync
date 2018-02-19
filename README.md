@@ -1,4 +1,9 @@
 # dr55sync
+------------
+CHANGES:
+ADDED ARDUINO NANO BOARD TO ORIGINAL PROJECT
+
+------------
 This project is creating DR-55 MIDI sync board.
 
 BOSS DR-55, Dr. Rhythm, is a programable rhythm machine manuafactured by Roland in 1979. This projects brings MIDI conenectibity to DR-55.
