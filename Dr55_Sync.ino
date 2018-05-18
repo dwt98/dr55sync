@@ -13,7 +13,8 @@ This is free software released into the public domain.
 // select circuit board version
 
 //#define PCB_VERSION_1_0    // version 1.0
-#define PCB_VERSION_2_1    // version 2.1
+//#define PCB_VERSION_2_1    // version 2.1
+#define ARDUINO_NANO
 
 // constants
 #define TPQN24  6     // number of F8 clock when TPQN=24
@@ -22,17 +23,18 @@ This is free software released into the public domain.
 #define LED_OFF LOW
 
 // Length of control pulse (msec)
-#define DUR_BD 20     // BD gate time
-#define DUR_SD 20     // SD gate time
-#define DUR_RS 20     // RS gate time
-#define DUR_AC 30     // gate time of Accent
+#define DUR_BD 20         // 20 BD gate time
+#define DUR_SD 30         // 20 SD gate time
+#define DUR_SD_SHORT 5    // 20 SD gate time
+#define DUR_RS 20         // RS gate time
+#define DUR_AC 100        //30 gate time of Accent
 #define DUR_HH_CLOSE 5   // gate time for close HH
 #define DUR_HH_PEDAL 35  // gate time for pedal HH
 #define DUR_HH_OPEN 150  // gate time for open HH
 #define WIDTH_CLOCK 20   // gate time of tempo clock
 #define WIDTH_LED 50     // gate time for led
 
-#define THRES_AC    90   // threshold velocity for accent
+#define THRES_AC    5   // threshold velocity for accent
 
 #ifdef PCB_VERSION_2_1   // PCB Version 2.1
 // I/O pins            I/0   pin# of Connector  -   DR-55 components
@@ -49,6 +51,24 @@ This is free software released into the public domain.
 #define LED_MIDI 4  // midi/clock indicator
 #define LED_RUN  5  // light while running clock
 #endif 
+
+
+#ifdef ARDUINO_NANO  // ARDUINO NANO
+// I/O pins            ORIGINAL   pin#  WIRE COLOR      DR-55 components
+#define IO_HH 10    // D10        2     RED             S4 Common
+#define IO_RS 11    // D11        3     orange          TC5501P  pin 12
+#define IO_SD 12    // D12        4     yellow          TC5501P  pin 14
+#define IO_BD 13    // D13        5     green           TC5501P  pin 16
+#define CLOCK A3    // A0         6     blue            TC4011UB pin 13
+#define ST A2       // A1         7     purple          TC4011UB pin 3
+#define IO_AC A1    // A2         8     grey            TC5501P  pin 10
+#define SW_OMNI  9  // D9               Omni mode switch
+
+// pin# of LEDs
+#define LED_MIDI 4  // midi/clock indicator
+#define LED_RUN  5  // light while running clock
+#endif
+
 
 #ifdef PCB_VERSION_1_0   // PCB Version 1.0
 // I/O pins            I/O   pin# of Connector  -   DR-55 components
@@ -342,10 +362,16 @@ void handleNoteOn(byte key, byte vel)
           dur = DUR_RS;
           tmRS.reset();
           break;
-        case 50:        // note# of SD1
+        case 50:        // note# of SHORT SD1
+          pin = IO_SD;
+          dur = DUR_SD_SHORT;
+          tmSD.interval(dur); // ADDED
+          tmSD.reset();
+          break;
         case 52:        // note# of SD2
           pin = IO_SD;
           dur = DUR_SD;
+          tmSD.interval(dur); // ADDED
           tmSD.reset();
           break;
         case 54:        // note# of Close HH
